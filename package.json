@@ -22,8 +22,8 @@
     "ws": "^8.18.1",
     "wss": "^3.3.4"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+   "scripts": {
+        "start": "node app.js"
+   },
   "license": "ISC"
 }
