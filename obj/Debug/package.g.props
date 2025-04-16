@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <PackageJsonName Condition="$(PackageJsonName) == ''">lodu-multiplayer</PackageJsonName>
+    <PackageJsonVersion Condition="$(PackageJsonVersion) == ''">0.0.0</PackageJsonVersion>
+    <PackageJsonDescription Condition="$(PackageJsonDescription) == ''">LoduMultiplayer</PackageJsonDescription>
+    <PackageJsonMain Condition="$(PackageJsonMain) == ''">app.js</PackageJsonMain>
+    <PackageJsonAuthor Condition="$(PackageJsonAuthor) == ''"></PackageJsonAuthor>
+    <PackageJsonDevdependenciesEslint Condition="$(PackageJsonDevdependenciesEslint) == ''">^8.21.0</PackageJsonDevdependenciesEslint>
+    <PackageJsonDependenciesCross Condition="$(PackageJsonDependenciesCross) == ''">^1.0.0</PackageJsonDependenciesCross>
+    <PackageJsonDependenciesCrypto Condition="$(PackageJsonDependenciesCrypto) == ''">^1.0.1</PackageJsonDependenciesCrypto>
+    <PackageJsonDependenciesExpress Condition="$(PackageJsonDependenciesExpress) == ''">^5.1.0</PackageJsonDependenciesExpress>
+    <PackageJsonDependenciesHttp Condition="$(PackageJsonDependenciesHttp) == ''">^0.0.1-security</PackageJsonDependenciesHttp>
+    <PackageJsonDependenciesHttps Condition="$(PackageJsonDependenciesHttps) == ''">^1.0.0</PackageJsonDependenciesHttps>
+    <PackageJsonDependenciesNodemon Condition="$(PackageJsonDependenciesNodemon) == ''">^3.1.9</PackageJsonDependenciesNodemon>
+    <PackageJsonDependenciesPath Condition="$(PackageJsonDependenciesPath) == ''">^0.12.7</PackageJsonDependenciesPath>
+    <PackageJsonDependenciesUuid Condition="$(PackageJsonDependenciesUuid) == ''">^11.1.0</PackageJsonDependenciesUuid>
+    <PackageJsonDependenciesUuidRandom Condition="$(PackageJsonDependenciesUuidRandom) == ''">^1.3.2</PackageJsonDependenciesUuidRandom>
+    <PackageJsonDependenciesWebsocket Condition="$(PackageJsonDependenciesWebsocket) == ''">^1.0.35</PackageJsonDependenciesWebsocket>
+    <PackageJsonDependenciesWs Condition="$(PackageJsonDependenciesWs) == ''">^8.18.1</PackageJsonDependenciesWs>
+    <PackageJsonDependenciesWss Condition="$(PackageJsonDependenciesWss) == ''">^3.3.4</PackageJsonDependenciesWss>
+    <PackageJsonScriptsTest Condition="$(PackageJsonScriptsTest) == ''">echo "Error: no test specified" &amp;&amp; exit 1</PackageJsonScriptsTest>
+    <PackageJsonLicense Condition="$(PackageJsonLicense) == ''">ISC</PackageJsonLicense>
+  </PropertyGroup>
+</Project>
