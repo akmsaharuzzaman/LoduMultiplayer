@@ -3,7 +3,7 @@ const serverConnect = require("./connection");
 const sgdsoft = require("./SGDSOFT_Plugin/SGDSOFT_Plugin.js");
 var uuid = require('uuid-random');
 
-let rooms = {};
+let rooms = new Map();
 
 const clients = new Set();
 
@@ -12,91 +12,62 @@ function getRandomInt(min, max) {
 }
 
 serverConnect.wssExport().on('connection', function (ws) {
+
+    ws.setMaxListeners(20); 
+
     //Connected Server
     sgdsoft.SGDSOFT_WEBSOCKET_On("SGDSOFT@Connected", ws, (ConnectedData) => {
         if (ConnectedData.connect == true) {
-
-            const randomInt = getRandomInt(50, 4000) + clients.size;
-            console.log("Timeout to Connect: " + randomInt);
+            ws.id = uuid();
+            ws.ownName = ConnectedData.userName;
+            clients.add(ws);
+            const userInfo = {
+                id: ws.id,
+                ownName: ws.ownName
+            }
+            sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@Connected", userInfo, ws);
+            /*const randomInt = getRandomInt(50, 1000) + clients.size;
             setTimeout(() => {
                 ws.id = uuid();
                 clients.add(ws);
-                console.log("ws connection");
                 sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@Connected", ws.id, ws);
-            }, randomInt);
+            }, randomInt);*/
         }
     });
 
     //Join Room
     sgdsoft.SGDSOFT_WEBSOCKET_On('SGDSOFT@CreateAndJoinRoom', ws, (JoinRoomData) => {
-        console.log("CreateAndJoinRoom...");
         CreateAndJoinRoom(ws, JoinRoomData.RoomName, JoinRoomData.userLength);
     });
 
-    //PiceMove
-    sgdsoft.SGDSOFT_WEBSOCKET_On('SGDSOFT@PiceMove', ws, (PiceMoveData) => {
-       /* clients.forEach((client) => {
-            sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@PiceMove", PiceMoveData, client);
-        });*/
+    sgdsoft.SGDSOFT_WEBSOCKET_On('SGDSOFT@Emoji', ws, (EmojiData) => {
         const roomKey = ws.room;
         if (roomKey && rooms[roomKey]) {
             rooms[roomKey].clients.forEach((client) => {
-                sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@PiceMove", PiceMoveData, client);
+                sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@Emoji", EmojiData, client);
             });
         }
     });
 
-    //DiceNumberGenearate
-    sgdsoft.SGDSOFT_WEBSOCKET_On('SGDSOFT@DiceNumberGenearate', ws, (DiceNumberGenearate) => {
-        /*clients.forEach((client) => {
-            sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@DiceNumberGenearate", DiceNumberGenearate, client);
-        });*/
-        const roomKey = ws.room;
-        if (roomKey && rooms[roomKey]) {
-            rooms[roomKey].clients.forEach(client => {
-                sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@DiceNumberGenearate", DiceNumberGenearate, client);
-            });
-        }
-    });
+    const events = [
+        'SGDSOFT@PiceMove',
+        'SGDSOFT@DiceNumberGenearate',
+        'SGDSOFT@SwitchHand',
+        'SGDSOFT@WinStatusUpdate',
+        'SGDSOFT@TimeReset',
+        'SGDSOFT@StartMatch',
+        'SGDSOFT@StartMatchDelay',
+        'SGDSOFT@BetAmount',
+        'SGDSOFT@micStatus'
+    ];
 
-    //SwitchHand
-    sgdsoft.SGDSOFT_WEBSOCKET_On('SGDSOFT@SwitchHand', ws, (SwitchHand) => {
-       /* clients.forEach((client) => {
-            sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@SwitchHand", SwitchHand, client);
-        });*/
-        const roomKey = ws.room;
-        if (roomKey && rooms[roomKey]) {
-            rooms[roomKey].clients.forEach(client => {
-                sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@SwitchHand", SwitchHand, client);
-            });
-        }
-    });
-
-    //WinStatusUpdate
-    sgdsoft.SGDSOFT_WEBSOCKET_On('SGDSOFT@WinStatusUpdate', ws, (WinStatusUpdate) => {
-        /*clients.forEach((client) => {
-            sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@WinStatusUpdate", WinStatusUpdate, client);
-        });*/
-        const roomKey = ws.room;
-        if (roomKey && rooms[roomKey]) {
-            rooms[roomKey].clients.forEach(client => {
-                sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@WinStatusUpdate", WinStatusUpdate, client);
-            });
-        }
-    });
-
-    //TimeReset
-    sgdsoft.SGDSOFT_WEBSOCKET_On('SGDSOFT@TimeReset', ws, (TimeReset) => {
-        const roomKey = ws.room;
-        if (roomKey && rooms[roomKey]) {
-            rooms[roomKey].clients.forEach(client => {
-                sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@TimeReset", TimeReset, client);
-            });
-        }
+     events.forEach(event => {
+        sgdsoft.SGDSOFT_WEBSOCKET_On(event, ws, (data) => {
+            if (ws.room) broadcastToRoom(event, data, ws.room);
+        });
     });
 
     ws.on('close', () => {
-        console.log("Client left id : " + ws.id);
         clients.delete(ws);
 
         const roomKey = ws.room;
@@ -104,9 +75,9 @@ serverConnect.wssExport().on('connection', function (ws) {
             const room = rooms[roomKey];
             room.clients = room.clients.filter(client => client !== ws);
 
-            if (room.clients.length < 2 && room.info.locked) {
-                console.log("Room has less than 2 members and is locked. Deleting room.");
-                delete rooms[roomKey];
+            if (room.clients.length == 0 && room.info.locked) {
+                rooms.delete(roomKey);
+                //delete rooms[roomKey];
             } else {
                 Room(roomKey);
             }
@@ -116,16 +87,26 @@ serverConnect.wssExport().on('connection', function (ws) {
 
 });
 
+function broadcastToRoom(event, data, roomKey) {
+    if (event == "SGDSOFT@StartMatch") {
+        const givenCardCount = data.givenCardCount;
+        data.cards = cards.GetRandomCards(givenCardCount);
+    }
+    const room = rooms[roomKey];
+    if (room && room.clients) {
+        room.clients.forEach(client => {
+            sgdsoft.SGDSOFT_WEBSOCKET_Emit(event, data, client);
+        });
+    }
+}
 
 
 function CreateAndJoinRoom(ws, requestedRoomKeyOrName, userLength) {
 
     if (ws.room && rooms[ws.room]) {
-        console.log("User is already in a room: ", ws.room);
         return;
     }
 
-    console.log("requestedRoomKeyOrName: ", requestedRoomKeyOrName);
     let targetRoomKey = null;
 
     for (const key in rooms) {
@@ -137,7 +118,6 @@ function CreateAndJoinRoom(ws, requestedRoomKeyOrName, userLength) {
     }
 
     if (!targetRoomKey) {
-        console.log("No available room found. Creating new one...");
         CreateRoom(ws, requestedRoomKeyOrName, userLength);
         return;
     }
@@ -146,14 +126,11 @@ function CreateAndJoinRoom(ws, requestedRoomKeyOrName, userLength) {
     if (!room.clients.includes(ws)) {
         room.clients.push(ws);
         ws.room = targetRoomKey;
-        console.log("Joined Room: ", targetRoomKey);
         if (room.clients.length >= room.info.maxUsers) {
             room.info.locked = true;
-            console.log("Room locked: " + targetRoomKey);
         }
         Room(targetRoomKey);
     } else {
-        console.log("Already in this room");
     }
 }
 
@@ -168,12 +145,12 @@ function CreateRoom(ws, roomName, maxUsers) {
 
     rooms[roomKey] = {
         clients: [ws],
-        info: roomInfo
+        info: roomInfo,
+        startMatch: false
     };
 
     ws.room = roomKey;
 
-    console.log("Created Room: ", roomKey, " Max Users:", maxUsers);
     Room(roomKey);
 }
 
@@ -183,8 +160,18 @@ function Room(roomKey) {
 
     const players = room.clients.map((client, index) => ({
         id: client.id,
-        serialNumber: index + 1
+        serialNumber: index + 1,
+        name: client.ownName
     }));
+
+    let ready = false;
+
+    if (room.clients.length > 1 && room.startMatch == false) {
+        room.startMatch = true;
+        ready = true;
+    } else if (room.clients.length == 1 && room.startMatch == true) {
+        room.startMatch = false;
+    }
 
     const data = {
         type: "RoomInfo",
@@ -194,13 +181,59 @@ function Room(roomKey) {
             clientsLength: room.clients.length,
             maxUsers: room.info.maxUsers,
             locked: room.info.locked,
-            players: players
+            players: players,
+            startMatch: room.startMatch
         }
     };
-
     room.clients.forEach(client => {
         sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@CreateAndJoinRoom", data, client);
     });
+
+    if (ready) {
+        setTimeout(() => {
+            if (rooms[roomKey].clients.length > 1) {
+                rooms[roomKey].info.locked = true;
+                rooms[roomKey].info.maxUsers = rooms[roomKey].clients.length;
+                const room = rooms[roomKey];
+                if (room && room.clients) {
+                    const setData = true;
+                    room.clients.forEach(client => {
+                        sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@StartMatch", setData, client);
+                    });
+                }
+            } else {
+                rooms[roomKey].startMatch = false;
+                ready = false;
+                Room(roomKey);
+            }
+        }, 15000);
+        gameLoop(15);
+    }
+
+    function gameLoop(timeIndex) {
+        const start = Date.now();
+
+        if (rooms[roomKey] && rooms[roomKey].clients) {
+            if (rooms[roomKey].clients.length === 1) {
+                rooms[roomKey].startMatch = false;
+                ready = false;
+                Room(roomKey);
+                return;
+            }
+            
+            rooms[roomKey].clients.forEach(client => {
+                sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@StartMatchDelay", timeIndex, client);
+            });
+        }
+
+        timeIndex -= 1;
+        const duration = Date.now() - start;
+        const delay = Math.max(0, 1000 - duration);
+
+        if (timeIndex > 0) {
+            setTimeout(() => gameLoop(timeIndex), delay);
+        }
+    }
 }
 
 function genKey(length) {

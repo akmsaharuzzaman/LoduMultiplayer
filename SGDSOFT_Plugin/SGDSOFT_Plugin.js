@@ -1,4 +1,5 @@
 //SGDSOFT_Plugin
+const msgpack = require('msgpack-lite');
 
 function isValidJson(str) {
     try {
@@ -10,6 +11,9 @@ function isValidJson(str) {
 }
 
 function SGDSOFT_On(_eventName, _webSocket, _callback) {
+    if (_webSocket.readyState !== _webSocket.OPEN) {
+        return false;
+    }
     _webSocket.on('message', function incoming(data) {
         if (isValidJson(data.toString())) {
             const jsonParsed = JSON.parse(data.toString());
@@ -17,20 +21,33 @@ function SGDSOFT_On(_eventName, _webSocket, _callback) {
                 return _callback(jsonParsed.SGDSOFT_data);
             }
         } else {
-            console.log("No Json");
+            try{
+                const msgpackData = msgpack.decode(data);
+                if (_eventName == msgpackData.SGDSOFT_EventName) {
+                    const parsedData = JSON.parse(msgpackData.SGDSOFT_data);
+                    return _callback(parsedData);
+                }
+            }catch(err){
+                console.error('Invalid MessagePack data', err);
+            }
         }
     });
 }
 
 function SGDSOFT_Emit(_eventName, _data, _webSocket) {
 
+    if (_webSocket.readyState !== _webSocket.OPEN) {
+        return false;
+    }
+
     var _SGDSOFT_Data = {
         'SGDSOFT_EventName': _eventName,
         'SGDSOFT_data': _data
     }
 
-    const _json_Data = JSON.stringify(_SGDSOFT_Data);
-    console.log(_json_Data);
+    //const _json_Data = JSON.stringify(_SGDSOFT_Data);
+    const _json_Data = msgpack.encode(_SGDSOFT_Data);
+    console.log("Size in bytes:", _json_Data.length);
     _webSocket.send(_json_Data);
 }
 
