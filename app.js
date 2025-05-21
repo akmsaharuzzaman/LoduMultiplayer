@@ -80,6 +80,15 @@ serverConnect.wssExport().on('connection', function (ws) {
                 //delete rooms[roomKey];
             } else {
                 Room(roomKey);
+
+                const leftUser = {
+                    id: ws.id || "",
+                    name: ownName || ""
+                };
+
+                room.clients.forEach(client => {
+                    sgdsoft.SGDSOFT_WEBSOCKET_Emit("SGDSOFT@LeaveUser", leftUser, client);
+                });
             }
         }
 
