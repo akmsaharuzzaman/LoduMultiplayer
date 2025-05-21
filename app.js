@@ -140,14 +140,14 @@ function CreateRoom(ws, roomName, maxUsers) {
         roomKey: roomKey,
         roomName: roomName,
         locked: false,
-        maxUsers: maxUsers,
-        play: false
+        maxUsers: maxUsers
     };
 
     rooms[roomKey] = {
         clients: [ws],
         info: roomInfo,
         startMatch: false,
+        play: false
     };
 
     ws.room = roomKey;
@@ -174,7 +174,7 @@ function Room(roomKey) {
         room.startMatch = false;
     }
 
-    if (room.roomInfo.play == false && room.clients.length == 1) {
+    if (room.play == false && room.clients.length == 1) {
         room.info.locked = false;
     }
 
@@ -197,7 +197,7 @@ function Room(roomKey) {
     if (ready) {
         setTimeout(() => {
             if (rooms[roomKey].clients.length > 1) {
-                rooms[roomKey].info.play = true;
+                rooms[roomKey].play = true;
                 rooms[roomKey].info.locked = true;
                 rooms[roomKey].info.maxUsers = rooms[roomKey].clients.length;
                 const room = rooms[roomKey];
