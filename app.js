@@ -122,7 +122,7 @@ function CreateAndJoinRoom(ws, requestedRoomKeyOrName, userLength) {
         return;
     }
 
-    const randomInt = getRandomInt(50, 1000) + room.clients.length;
+    const randomInt = getRandomInt(500, 1000) + room.clients.length;
     setTimeout(() => {
         const room = rooms[targetRoomKey];
         if (!room.clients.includes(ws)) {
