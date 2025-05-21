@@ -83,7 +83,7 @@ serverConnect.wssExport().on('connection', function (ws) {
 
                 const leftUser = {
                     id: ws.id || "",
-                    name: ownName || ""
+                    name: ws.ownName || ""
                 };
 
                 room.clients.forEach(client => {
